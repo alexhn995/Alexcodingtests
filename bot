@@ -18,7 +18,7 @@ API_KEY = os.getenv("bg_77efa443e115d914c58c797334ace7b5")
 
 API_SECRET = os.getenv("211107dfc4a51a3b230f1aaad15a6ef5c33151efba9e4d4ab5d1946b412806ce")
 
-API_PASSPHRASE = os.getenv("lexstyle67@", "")
+API_PASSPHRASE = os.getenv("alexstyle67@", "")
 
 BASE_URL = https://api.bitget.com
 
