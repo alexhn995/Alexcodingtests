@@ -1,188 +1,98 @@
 import os
-
 import time
-
 import requests
-
 import hmac
-
 import hashlib
-
 import logging
 
- 
-
-# Konfiguration (NICHT IM CODE HARDCODEN!)
-
-API_KEY = os.getenv("bg_77efa443e115d914c58c797334ace7b5")
-
-API_SECRET = os.getenv("211107dfc4a51a3b230f1aaad15a6ef5c33151efba9e4d4ab5d1946b412806ce")
-
-API_PASSPHRASE = os.getenv("alexstyle67@", "")
-
-BASE_URL = https://api.bitget.com
-
+# Konfiguration
+API_KEY = os.getenv("API_KEY", "")
+API_SECRET = os.getenv("API_SECRET", "")
+API_PASSPHRASE = os.getenv("API_PASSPHRASE", "")
+BASE_URL = "https://api.bitget.com"
 SYMBOL = "BTCUSDT"
-
 LEVERAGE = 5
-
 INTERVAL = 60  # Sekunden
 
- 
-
 # Logging
-
 logging.basicConfig(
-
     level=logging.INFO,
-
     format="%(asctime)s - %(levelname)s - %(message)s",
-
     handlers=[logging.FileHandler("trading.log"), logging.StreamHandler()]
-
 )
 
- 
-
 def generate_signature(params: dict, secret: str) -> str:
-
     """Generiere HMAC-SHA256 Signatur"""
-
     query = "&".join([f"{k}={v}" for k, v in sorted(params.items())])
-
     return hmac.new(secret.encode(), query.encode(), hashlib.sha256).hexdigest()
 
- 
-
 def send_api_request(method: str, endpoint: str, params: dict = None) -> dict:
-
     """Sende API-Anfrage"""
-
     try:
-
         timestamp = str(int(time.time() * 1000))
-
         params = params or {}
-
         params.update({"apiKey": API_KEY, "timestamp": timestamp})
-
         params["sign"] = generate_signature(params, API_SECRET)
 
-       
-
         headers = {
-
             "Content-Type": "application/json",
-
             "X-BG-API-APIKEY": API_KEY,
-
             "X-BG-API-TIMESTAMP": timestamp,
-
         }
 
-       
-
         response = requests.request(
-
             method,
-
             BASE_URL + endpoint,
-
             params=params if method == "GET" else None,
-
             json=params if method in ["POST", "PUT"] else None,
-
             headers=headers,
-
             timeout=10
-
         )
-
         response.raise_for_status()
-
         return response.json()
-
-    except Exception as e:
-
-        logging.error(f"API-Fehler: {str(e)}")
-
+    except requests.exceptions.RequestException as e:
+        logging.error(f"API-Anfrage fehlgeschlagen: {str(e)}")
         return None
 
- 
-
 def get_market_price() -> float:
-
     """Hole aktuellen Marktpreis"""
-
     data = send_api_request("GET", "/api/mix/v1/market/ticker", {"symbol": SYMBOL})
-
-    return float(data["data"]["last"]) if data else 0.0
-
- 
+    price = float(data["data"]["last"]) if data and "data" in data else 0.0
+    logging.info(f"Aktueller Marktpreis: {price}")
+    return price
 
 def place_trade_order(side: str) -> dict:
-
     """Platziere Order"""
-
+    logging.info(f"Platziere {side} Order")
     return send_api_request("POST", "/api/mix/v1/order/place", {
-
         "symbol": SYMBOL,
-
         "side": side,
-
         "size": "1",  # Anpassen!
-
         "orderType": "market",
-
         "leverage": LEVERAGE,
-
         "marginMode": "isolated"
-
     })
 
- 
-
 def trading_strategy() -> str:
-
     """Handelslogik (Beispiel: Simple Trendfolge)"""
-
     price = get_market_price()
-
-    if price > 100:  # Ersetzen durch echte Logik!
-
-        return "buy"
-
-    else:
-
-        return "sell"
-
- 
+    return "buy" if price > 100 else "sell"  # Ersetzen durch echte Logik!
 
 def main():
-
     logging.info("Bot gestartet")
-
     while True:
-
         signal = trading_strategy()
-
-        if signal == "buy":
-
-            logging.info("LONG Order platzieren")
-
-            place_trade_order("buy")
-
-        elif signal == "sell":
-
-            logging.info("SHORT Order platzieren")
-
-            place_trade_order("sell")
-
+        if signal in ["buy", "sell"]:
+            place_trade_order(signal)
         time.sleep(INTERVAL)
 
- 
-
 if __name__ == "__main__":
-
     main()
 
+        
+ 
+
+
+
+  
+      
